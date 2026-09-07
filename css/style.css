@@ -186,17 +186,20 @@ body {
   40% { transform: scale(1.55); }
   100% { transform: scale(1); }
 }
-.subdots { display: flex; gap: 4px; height: 7px; align-items: center; }
+.subdots { position: relative; width: 38px; height: 9px; }
 .subdot {
+  position: absolute;
+  top: 1.5px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--dot-sub);
+  transform: translateX(-50%);
   transition: transform 0.1s ease, background 0.1s ease;
 }
 .subdot.hit {
   background: var(--accent);
-  transform: scale(1.7);
+  transform: translateX(-50%) scale(1.7);
 }
 
 /* ---------- tempo ---------- */
@@ -418,6 +421,32 @@ body {
 }
 .chip .sym { margin-right: 5px; }
 
+/* rhythm pattern chips: notation icon over label, 5 per row */
+.chips.patterns { display: flex; flex-wrap: wrap; gap: 8px; }
+.pattern-chip {
+  flex: 1 1 calc(20% - 7px);
+  max-width: 122px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 4px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: center;
+}
+.pattern-chip .nota {
+  display: block;
+  height: 24px;
+  width: auto;
+  max-width: 100%;
+}
+.pattern-chip .nota ellipse,
+.pattern-chip .nota rect,
+.pattern-chip .nota circle { fill: currentColor; }
+.pattern-chip .nota text { fill: currentColor; font-family: inherit; }
+
 /* volume */
 .volume-control { gap: 10px; }
 .volume-control .slider { flex: 1; width: auto; min-width: 0; }
@@ -455,4 +484,5 @@ body {
   .setting-label { flex: 0 0 100%; }
   .pendulum-panel { height: 175px; }
   .arm { height: 132px; }
+  .pattern-chip { flex: 1 1 calc(33.333% - 6px); }
 }

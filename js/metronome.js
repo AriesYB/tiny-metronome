@@ -130,7 +130,7 @@
     constructor() {
       this.bpm = 120;
       this.beatsPerMeasure = 4;
-      this.subdivision = 1;              // clicks per beat: 1 | 2 | 3 | 4
+      this.pattern = [0];                  // click offsets within one beat, 0..1, ascending
       this.accents = [true, false, false, false]; // per main beat
       this.volume = 0.8;                 // 0..1
       this.sound = 'wood';
@@ -138,8 +138,10 @@
       this._ctx = null;
       this._master = null;
       this._timerId = null;
-      this._nextTickTime = 0;
-      this._slot = 0;                    // index within the measure
+      this._nextClickTime = 0;
+      this._beatIdx = 0;                 // beat within the measure
+      this._clickIdx = 0;                // index into this.pattern
+      this._beatStart = 0;               // audio time of the current beat's first click
       this._absBeat = 0;                 // pendulum anchor: beats since start
       this._anchorTime = 0;
       this._lookahead = LOOKAHEAD;
@@ -173,18 +175,33 @@
       this.accents = acc;
     }
 
-    setSubdivision(n) {
-      if ([1, 2, 3, 4].includes(n)) this.subdivision = n;
+    setPattern(offsets) {
+      const p = [...offsets]
+        .map((v) => Math.min(0.99, Math.max(0, +v || 0)))
+        .sort((a, b) => a - b);
+      if (!p.length || p[0] !== 0) p.unshift(0);
+      const changed = JSON.stringify(p) !== JSON.stringify(this.pattern);
+      this.pattern = p;
+      // take effect cleanly at the next downbeat (no stray clicks mid-beat)
+      if (changed && this.running) {
+        this._clickIdx = 0;
+        this._beatIdx = (this._beatIdx + 1) % this.beatsPerMeasure;
+        this._beatStart += 60 / this.bpm;
+        this._nextClickTime = this._beatStart;
+      }
     }
 
     start() {
       if (this.running) return;
       this._ensureContext();
       this.running = true;
-      this._slot = 0;
+      this._beatIdx = 0;
+      this._clickIdx = 0;
       this._absBeat = 0;
+      this._anchorTime = this._ctx.currentTime + 0.08;
       this._drawQueue.length = 0;
-      this._nextTickTime = this._ctx.currentTime + 0.08;
+      this._beatStart = this._ctx.currentTime + 0.08;
+      this._nextClickTime = this._beatStart + this.pattern[0] * (60 / this.bpm);
       this._timerId = setInterval(() => this._scheduler(), TICK_MS);
       this._scheduler();
     }
@@ -202,17 +219,25 @@
 
     _scheduler() {
       const ctx = this._ctx;
-      while (this._nextTickTime < ctx.currentTime + this._lookahead) {
-        this._scheduleSlot(this._slot, this._nextTickTime);
-        this._nextTickTime += 60 / this.bpm / this.subdivision;
-        this._slot = (this._slot + 1) % (this.beatsPerMeasure * this.subdivision);
+      while (this._nextClickTime < ctx.currentTime + this._lookahead) {
+        this._scheduleClick(this._beatIdx, this._clickIdx, this._nextClickTime);
+        this._advance();
       }
     }
 
-    _scheduleSlot(slot, t) {
-      const beat = Math.floor(slot / this.subdivision);
-      const sub = slot % this.subdivision;
-      const isMain = sub === 0;
+    _advance() {
+      const beatDur = 60 / this.bpm;
+      this._clickIdx++;
+      if (this._clickIdx >= this.pattern.length) {
+        this._clickIdx = 0;
+        this._beatIdx = (this._beatIdx + 1) % this.beatsPerMeasure;
+        this._beatStart += beatDur;
+      }
+      this._nextClickTime = this._beatStart + this.pattern[this._clickIdx] * beatDur;
+    }
+
+    _scheduleClick(beat, clickIdx, t) {
+      const isMain = clickIdx === 0;
       const accent = isMain && !!this.accents[beat];
       const level = isMain
         ? (accent ? this.volume : this.volume * 0.72)
@@ -227,7 +252,7 @@
           n.onended = () => this._active.delete(n);
         }
       }
-      this._drawQueue.push({ time: t, beat, sub, isMain, accent });
+      this._drawQueue.push({ time: t, beat, sub: clickIdx, isMain, accent });
     }
 
     /** Pop visual events whose audio time is due. Call from rAF. */

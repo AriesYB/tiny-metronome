@@ -13,7 +13,7 @@
       title: '节拍器',
       tap: '点击测速',
       sig: '拍号',
-      subdiv: '节奏分割',
+      subdiv: '节奏型',
       sound: '音色',
       volume: '音量',
       timer: '定时停止',
@@ -28,7 +28,6 @@
       numDownAria: '每小节拍数 -1',
       denUpAria: '音符单位 上一个',
       denDownAria: '音符单位 下一个',
-      subdivNames: ['四分', '八分', '三连音', '十六分'],
       soundNames: { wood: '响板', beep: '电子音', drum: '底鼓', hat: '踩镲' },
       timerOff: '关闭',
       minUnit: '分',
@@ -37,7 +36,7 @@
       title: 'Metronome',
       tap: 'Tap tempo',
       sig: 'Time',
-      subdiv: 'Subdivision',
+      subdiv: 'Pattern',
       sound: 'Sound',
       volume: 'Volume',
       timer: 'Timer',
@@ -52,7 +51,6 @@
       numDownAria: 'beats per measure -1',
       denUpAria: 'note value up',
       denDownAria: 'note value down',
-      subdivNames: ['Quarter', 'Eighth', 'Triplet', '16th'],
       soundNames: { wood: 'Wood', beep: 'Beep', drum: 'Kick', hat: 'Hat' },
       timerOff: 'Off',
       minUnit: 'min',
@@ -74,8 +72,61 @@
     [200, 300, 'Prestissimo', '最急板'],
   ];
 
-  const SUBDIVS = [1, 2, 3, 4];
-  const SUBDIV_SYMS = ['♩', '♪♪', '♪♪♪', '♬'];
+  /* ---------- rhythm patterns ----------
+   * off: click positions within one beat (fraction of the beat, ascending)
+   * notes: notation spec for the chip icon — { d: dotted, s: sixteenth }
+   * ------------------------------------ */
+
+  const PATTERNS = [
+    { id: 'q',   off: [0],                            notes: [{},],                                              triplet: false },
+    { id: 'e',   off: [0, 0.5],                       notes: [{}, {}],                                           triplet: false },
+    { id: 't',   off: [0, 1 / 3, 2 / 3],              notes: [{}, {}, {}],                                       triplet: true  },
+    { id: 's',   off: [0, 0.25, 0.5, 0.75],           notes: [{ s: true }, { s: true }, { s: true }, { s: true }], triplet: false },
+    { id: 'dA',  off: [0, 0.75],                      notes: [{ d: true }, { s: true }],                         triplet: false },
+    { id: 'dB',  off: [0, 0.25],                      notes: [{ s: true }, { d: true }],                         triplet: false },
+    { id: 'a2s', off: [0, 0.5, 0.75],                 notes: [{}, { s: true }, { s: true }],                     triplet: false },
+    { id: 's2a', off: [0, 0.25, 0.5],                 notes: [{ s: true }, { s: true }, {}],                     triplet: false },
+    { id: 'syn', off: [0, 0.25, 0.75],                notes: [{ s: true }, {}, { s: true }],                     triplet: false },
+  ];
+  const PATTERN_LABELS = {
+    zh: { q: '四分', e: '八分', t: '三连音', s: '十六分', dA: '附点', dB: '反附点', a2s: '前八后十六', s2a: '前十六后八', syn: '切分' },
+    en: { q: 'Quarter', e: 'Eighth', t: 'Triplet', s: '16ths', dA: 'Dotted', dB: 'Reverse', a2s: '8th+16ths', s2a: '16ths+8th', syn: 'Syncopa' },
+  };
+  // legacy settings used evenly-spaced subdivisions 1|2|3|4
+  const SUBDIV_MIGRATE = { 1: 'q', 2: 'e', 3: 't', 4: 's' };
+
+  /** Small beamed-note notation icon, rendered in currentColor. */
+  function notationSvg(p) {
+    const notes = p.notes;
+    const n = notes.length;
+    const sp = 10.5, x0 = 7, headY = 20, stemTop = 6;
+    const stemX = (i) => x0 + i * sp + 2.9;
+    const width = 14 + (n - 1) * sp + (notes[n - 1].d ? 5 : 0);
+    let out = '';
+    notes.forEach((nt, i) => {
+      const cx = x0 + i * sp;
+      out += `<ellipse cx="${cx}" cy="${headY}" rx="3.4" ry="2.5" transform="rotate(-18 ${cx} ${headY})"/>`;
+      out += `<rect x="${cx + 2.5}" y="${stemTop}" width="1.3" height="${headY - stemTop - 1.5}"/>`;
+      if (nt.d) out += `<circle cx="${cx + 6.3}" cy="${headY - 0.5}" r="1.35"/>`;
+    });
+    if (n > 1) {
+      out += `<rect x="${stemX(0) - 0.2}" y="${stemTop}" width="${stemX(n - 1) - stemX(0) + 1.7}" height="2.4"/>`;
+      for (let i = 0; i < n - 1; i++) {
+        if (notes[i].s && notes[i + 1].s) {
+          out += `<rect x="${stemX(i) - 0.2}" y="${stemTop + 4}" width="${stemX(i + 1) - stemX(i) + 1.7}" height="2.2"/>`;
+        }
+      }
+    }
+    if (p.triplet) {
+      out += `<text x="${(stemX(0) + stemX(n - 1)) / 2}" y="5" font-size="7" font-weight="700" text-anchor="middle">3</text>`;
+    }
+    return `<svg class="nota" viewBox="0 0 ${width} 25" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${out}</svg>`;
+  }
+
+  function patternById(id) {
+    return PATTERNS.find((p) => p.id === id) || PATTERNS[0];
+  }
+
   const TIMERS = [0, 1, 2, 5, 10, 15, 30];
   const DENS = [2, 4, 8, 16];
   const STORE_KEY = 'open-metronome.v1';
@@ -88,7 +139,7 @@
     bpm: 120,
     num: 4,
     den: 4,
-    subdiv: 1,
+    pattern: 'q',
     sound: 'wood',
     volume: 80,
     timerMin: 0,
@@ -105,13 +156,18 @@
 
   function load() {
     try {
-      const raw = localStorage.getItem(STORE_KEY);
-      if (!raw) return { ...defaults };
-      const s = { ...defaults, ...JSON.parse(raw) };
+      const stored = localStorage.getItem(STORE_KEY);
+      if (!stored) return { ...defaults };
+      const raw = JSON.parse(stored);
+      const s = { ...defaults, ...raw };
       s.bpm = clampInt(s.bpm, 20, 300, 120);
       s.num = clampInt(s.num, 1, 16, 4);
       if (!DENS.includes(s.den)) s.den = 4;
-      if (!SUBDIVS.includes(s.subdiv)) s.subdiv = 1;
+      if (!('pattern' in raw)) {
+        s.pattern = SUBDIV_MIGRATE[raw.subdiv] || defaults.pattern; // migrate v1 evenly-spaced setting
+      } else if (!PATTERNS.some((p) => p.id === s.pattern)) {
+        s.pattern = defaults.pattern;
+      }
       if (!Metronome.SOUNDS.includes(s.sound)) s.sound = 'wood';
       s.volume = clampInt(s.volume, 0, 100, 80);
       if (!TIMERS.includes(s.timerMin)) s.timerMin = 0;
@@ -203,15 +259,17 @@
   }
 
   function rebuildChips() {
-    // subdivisions
+    // rhythm patterns (notation icon + label, 5 per row)
     el.subdivChips.innerHTML = '';
-    SUBDIVS.forEach((n, i) => {
-      el.subdivChips.appendChild(makeChip(
-        t('subdivNames')[i],
-        engine.subdivision === n,
-        () => setSubdivision(n),
-        `<span class="sym">${SUBDIV_SYMS[i]}</span>`,
-      ));
+    PATTERNS.forEach((p) => {
+      const chip = makeChip(
+        PATTERN_LABELS[lang][p.id] || p.id,
+        state.pattern === p.id,
+        () => setPatternId(p.id),
+      );
+      chip.classList.add('pattern-chip');
+      chip.insertAdjacentHTML('afterbegin', notationSvg(p));
+      el.subdivChips.appendChild(chip);
     });
 
     // sounds
@@ -250,9 +308,10 @@
 
       const subs = document.createElement('span');
       subs.className = 'subdots';
-      for (let s = 1; s < engine.subdivision; s++) {
+      for (let s = 1; s < engine.pattern.length; s++) {
         const sd = document.createElement('span');
         sd.className = 'subdot';
+        sd.style.left = `${(engine.pattern[s] * 100).toFixed(1)}%`;
         subs.appendChild(sd);
       }
       beat.appendChild(subs);
@@ -428,9 +487,9 @@
     setDen(DENS[(i + dir + DENS.length) % DENS.length]);
   }
 
-  function setSubdivision(n) {
-    engine.setSubdivision(n);
-    state.subdiv = n;
+  function setPatternId(id) {
+    state.pattern = patternById(id).id;
+    engine.setPattern(patternById(id).off);
     rebuildChips();
     renderDots();
     saveTimer();
@@ -536,7 +595,7 @@
     engine.bpm = state.bpm;
     engine.setBeats(state.num);
     engine.accents = state.accents.slice(0, state.num);
-    engine.setSubdivision(state.subdiv);
+    engine.setPattern(patternById(state.pattern).off);
     engine.sound = state.sound;
     engine.volume = state.volume / 100;
 
