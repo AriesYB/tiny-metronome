@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>节拍器 · Open Metronome</title>
+  <meta name="description" content="免费开源的在线节拍器：BPM 20-300、拍号、节奏分割、逐拍重音、点击测速、定时停止。零依赖，可离线使用。" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M24 6h16l12 52H12z' fill='%234f6ef7'/%3E%3Crect x='30' y='14' width='4' height='30' rx='2' fill='%23fff'/%3E%3Ccircle cx='32' cy='42' r='5' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <noscript><p style="text-align:center;padding:2rem">此节拍器需要启用 JavaScript / This metronome requires JavaScript.</p></noscript>
+
+  <main class="card">
+    <header class="topbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M24 6h16l12 52H12z" fill="currentColor" opacity=".9"/>
+          <rect x="30.2" y="14" width="3.6" height="30" rx="1.8" fill="#fff"/>
+          <circle cx="32" cy="42" r="5" fill="#fff"/>
+        </svg>
+        <h1 data-i18n="title">节拍器</h1>
+      </div>
+      <div class="top-actions">
+        <button id="langToggle" class="ghost-btn" aria-label="Language">EN</button>
+        <button id="themeToggle" class="ghost-btn icon-only" aria-label="Theme"><span id="themeIcon">🌙</span></button>
+      </div>
+    </header>
+
+    <!-- pendulum -->
+    <section class="pendulum-panel" id="pendulumPanel" aria-hidden="true">
+      <svg class="scale" id="scaleSvg" viewBox="0 0 400 210" preserveAspectRatio="xMidYMax meet"></svg>
+      <div class="arm" id="arm"><div class="weight" id="weight"></div></div>
+      <div class="pivot"></div>
+    </section>
+
+    <!-- beat dots -->
+    <section class="dots-wrap">
+      <div class="dots" id="dots" role="group" data-i18n-aria="beatsAria"></div>
+    </section>
+
+    <!-- tempo -->
+    <section class="tempo">
+      <div class="bpm-row">
+        <button id="bpmDown" class="step-btn" aria-label="-1 BPM" data-i18n-aria="decAria">−</button>
+        <div class="bpm-box">
+          <input id="bpmInput" class="bpm-input" inputmode="numeric" autocomplete="off"
+                 spellcheck="false" value="120" aria-label="BPM" />
+          <span class="bpm-unit">BPM</span>
+        </div>
+        <button id="bpmUp" class="step-btn" aria-label="+1 BPM" data-i18n-aria="incAria">＋</button>
+      </div>
+      <div class="tempo-term" id="tempoTerm">Allegro · 快板</div>
+      <input type="range" id="bpmSlider" class="slider" min="20" max="300" step="1" value="120"
+             aria-label="BPM slider" data-i18n-aria="bpmSliderAria" />
+      <div class="controls-row">
+        <button id="playBtn" class="play-btn" aria-label="Play" data-i18n-aria="playAria">
+          <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.4v14H7zM13.6 5H17v14h-3.4z"/></svg>
+        </button>
+        <button id="tapBtn" class="tap-btn" data-i18n="tap">点击测速</button>
+      </div>
+    </section>
+
+    <!-- settings -->
+    <section class="settings">
+      <div class="setting">
+        <label class="setting-label" data-i18n="sig">拍号</label>
+        <div class="setting-control sig-control">
+          <div class="sig-stepper">
+            <button id="numUp" class="mini-btn" aria-label="beats +1" data-i18n-aria="numUpAria">▲</button>
+            <span id="sigNum" class="sig-num">4</span>
+            <button id="numDown" class="mini-btn" aria-label="beats -1" data-i18n-aria="numDownAria">▼</button>
+          </div>
+          <div class="sig-divider"></div>
+          <div class="sig-stepper">
+            <button id="denUp" class="mini-btn" aria-label="note value +" data-i18n-aria="denUpAria">▲</button>
+            <span id="sigDen" class="sig-num">4</span>
+            <button id="denDown" class="mini-btn" aria-label="note value -" data-i18n-aria="denDownAria">▼</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting">
+        <label class="setting-label" data-i18n="subdiv">节奏分割</label>
+        <div class="setting-control chips" id="subdivChips"></div>
+      </div>
+
+      <div class="setting">
+        <label class="setting-label" data-i18n="sound">音色</label>
+        <div class="setting-control chips" id="soundChips"></div>
+      </div>
+
+      <div class="setting">
+        <label class="setting-label" data-i18n="volume">音量</label>
+        <div class="setting-control volume-control">
+          <span class="vol-icon" id="volIcon" aria-hidden="true">🔊</span>
+          <input type="range" id="volumeSlider" class="slider" min="0" max="100" step="1" value="80" />
+        </div>
+      </div>
+
+      <div class="setting">
+        <label class="setting-label" data-i18n="timer">定时停止</label>
+        <div class="setting-control chips" id="timerChips"></div>
+      </div>
+      <div class="setting timer-readout-row" id="timerReadoutRow" hidden>
+        <label class="setting-label" data-i18n="remaining">剩余时间</label>
+        <div class="setting-control"><span id="timerLeft" class="timer-left">00:00</span></div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <p class="hint" data-i18n="hint"></p>
+      <p class="credit">Open Metronome · <a href="https://github.com" target="_blank" rel="noopener">GitHub</a> · MIT</p>
+    </footer>
+  </main>
+
+  <script src="js/metronome.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

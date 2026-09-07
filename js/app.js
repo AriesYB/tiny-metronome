@@ -1,0 +1,614 @@
+/* ============================================================
+ * Open Metronome — UI wiring
+ * ============================================================ */
+(function () {
+  'use strict';
+
+  const $ = (s) => document.querySelector(s);
+
+  /* ---------- i18n ---------- */
+
+  const I18N = {
+    zh: {
+      title: '节拍器',
+      tap: '点击测速',
+      sig: '拍号',
+      subdiv: '节奏分割',
+      sound: '音色',
+      volume: '音量',
+      timer: '定时停止',
+      remaining: '剩余时间',
+      hint: '空格 播放/停止 · ↑ ↓ 调节速度（Shift ±5）· T 测速 · 点击圆点切换重音',
+      playAria: '播放 / 停止',
+      decAria: '速度 -1',
+      incAria: '速度 +1',
+      bpmSliderAria: 'BPM 滑块',
+      beatsAria: '每小节节拍，点击切换重音',
+      numUpAria: '每小节拍数 +1',
+      numDownAria: '每小节拍数 -1',
+      denUpAria: '音符单位 上一个',
+      denDownAria: '音符单位 下一个',
+      subdivNames: ['四分', '八分', '三连音', '十六分'],
+      soundNames: { wood: '响板', beep: '电子音', drum: '底鼓', hat: '踩镲' },
+      timerOff: '关闭',
+      minUnit: '分',
+    },
+    en: {
+      title: 'Metronome',
+      tap: 'Tap tempo',
+      sig: 'Time',
+      subdiv: 'Subdivision',
+      sound: 'Sound',
+      volume: 'Volume',
+      timer: 'Timer',
+      remaining: 'Remaining',
+      hint: 'Space play/stop · ↑ ↓ tempo (Shift ±5) · T tap · click a dot to toggle accent',
+      playAria: 'Play / stop',
+      decAria: 'tempo -1',
+      incAria: 'tempo +1',
+      bpmSliderAria: 'BPM slider',
+      beatsAria: 'Beats per measure — click to toggle accent',
+      numUpAria: 'beats per measure +1',
+      numDownAria: 'beats per measure -1',
+      denUpAria: 'note value up',
+      denDownAria: 'note value down',
+      subdivNames: ['Quarter', 'Eighth', 'Triplet', '16th'],
+      soundNames: { wood: 'Wood', beep: 'Beep', drum: 'Kick', hat: 'Hat' },
+      timerOff: 'Off',
+      minUnit: 'min',
+    },
+  };
+
+  /* ---------- tempo terms ---------- */
+
+  const TEMPO_TERMS = [
+    [20, 40, 'Grave', '庄板'],
+    [40, 60, 'Largo', '广板'],
+    [60, 66, 'Larghetto', '小广板'],
+    [66, 76, 'Adagio', '柔板'],
+    [76, 108, 'Andante', '行板'],
+    [108, 120, 'Moderato', '中板'],
+    [120, 156, 'Allegro', '快板'],
+    [156, 172, 'Vivace', '活板'],
+    [172, 200, 'Presto', '急板'],
+    [200, 300, 'Prestissimo', '最急板'],
+  ];
+
+  const SUBDIVS = [1, 2, 3, 4];
+  const SUBDIV_SYMS = ['♩', '♪♪', '♪♪♪', '♬'];
+  const TIMERS = [0, 1, 2, 5, 10, 15, 30];
+  const DENS = [2, 4, 8, 16];
+  const STORE_KEY = 'open-metronome.v1';
+
+  /* ---------- state ---------- */
+
+  const defaults = {
+    lang: 'zh',
+    theme: null,
+    bpm: 120,
+    num: 4,
+    den: 4,
+    subdiv: 1,
+    sound: 'wood',
+    volume: 80,
+    timerMin: 0,
+    accents: [true, false, false, false],
+  };
+  let state = load();
+
+  const engine = new Metronome();
+  let lang = state.lang || 'zh';
+  let timerEndsAt = 0;
+  let taps = [];
+
+  /* ---------- persistence ---------- */
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { ...defaults };
+      const s = { ...defaults, ...JSON.parse(raw) };
+      s.bpm = clampInt(s.bpm, 20, 300, 120);
+      s.num = clampInt(s.num, 1, 16, 4);
+      if (!DENS.includes(s.den)) s.den = 4;
+      if (!SUBDIVS.includes(s.subdiv)) s.subdiv = 1;
+      if (!Metronome.SOUNDS.includes(s.sound)) s.sound = 'wood';
+      s.volume = clampInt(s.volume, 0, 100, 80);
+      if (!TIMERS.includes(s.timerMin)) s.timerMin = 0;
+      if (!Array.isArray(s.accents)) s.accents = defaults.accents;
+      return s;
+    } catch (e) {
+      return { ...defaults };
+    }
+  }
+
+  const saveTimer = debounce(() => {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        ...state, accents: engine.accents,
+      }));
+    } catch (e) { /* private mode etc. */ }
+  }, 250);
+
+  function debounce(fn, ms) {
+    let id;
+    return (...args) => { clearTimeout(id); id = setTimeout(() => fn(...args), ms); };
+  }
+
+  function clampInt(v, lo, hi, fallback) {
+    v = parseInt(v, 10);
+    if (Number.isNaN(v)) return fallback;
+    return Math.min(hi, Math.max(lo, v));
+  }
+
+  /* ---------- dom refs ---------- */
+
+  const el = {
+    langToggle: $('#langToggle'),
+    themeToggle: $('#themeToggle'),
+    themeIcon: $('#themeIcon'),
+    arm: $('#arm'),
+    weight: $('#weight'),
+    scaleSvg: $('#scaleSvg'),
+    dots: $('#dots'),
+    bpmInput: $('#bpmInput'),
+    bpmSlider: $('#bpmSlider'),
+    bpmDown: $('#bpmDown'),
+    bpmUp: $('#bpmUp'),
+    tempoTerm: $('#tempoTerm'),
+    playBtn: $('#playBtn'),
+    tapBtn: $('#tapBtn'),
+    sigNum: $('#sigNum'),
+    sigDen: $('#sigDen'),
+    numUp: $('#numUp'),
+    numDown: $('#numDown'),
+    denUp: $('#denUp'),
+    denDown: $('#denDown'),
+    subdivChips: $('#subdivChips'),
+    soundChips: $('#soundChips'),
+    timerChips: $('#timerChips'),
+    volumeSlider: $('#volumeSlider'),
+    volIcon: $('#volIcon'),
+    timerReadoutRow: $('#timerReadoutRow'),
+    timerLeft: $('#timerLeft'),
+  };
+
+  /* ---------- i18n apply ---------- */
+
+  function t(key) { return I18N[lang][key]; }
+
+  function applyI18n() {
+    document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('[data-i18n]').forEach((n) => { n.textContent = t(n.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-aria]').forEach((n) => {
+      n.setAttribute('aria-label', t(n.dataset.i18nAria));
+    });
+    el.langToggle.textContent = lang === 'zh' ? 'EN' : '中文';
+    el.tapBtn.innerHTML = lang === 'zh' ? '点击测速' : 'Tap tempo';
+    rebuildChips();
+    renderDots();
+    updateTempoTerm();
+  }
+
+  /* ---------- chips ---------- */
+
+  function makeChip(label, active, onClick, extraHtml) {
+    const b = document.createElement('button');
+    b.className = 'chip' + (active ? ' active' : '');
+    b.type = 'button';
+    b.innerHTML = (extraHtml || '') + label;
+    b.setAttribute('aria-pressed', active ? 'true' : 'false');
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  function rebuildChips() {
+    // subdivisions
+    el.subdivChips.innerHTML = '';
+    SUBDIVS.forEach((n, i) => {
+      el.subdivChips.appendChild(makeChip(
+        t('subdivNames')[i],
+        engine.subdivision === n,
+        () => setSubdivision(n),
+        `<span class="sym">${SUBDIV_SYMS[i]}</span>`,
+      ));
+    });
+
+    // sounds
+    el.soundChips.innerHTML = '';
+    Metronome.SOUNDS.forEach((s) => {
+      el.soundChips.appendChild(makeChip(
+        t('soundNames')[s], engine.sound === s, () => setSound(s),
+      ));
+    });
+
+    // timer
+    el.timerChips.innerHTML = '';
+    TIMERS.forEach((m) => {
+      el.timerChips.appendChild(makeChip(
+        m === 0 ? t('timerOff') : `${m} ${t('minUnit')}`,
+        state.timerMin === m,
+        () => setTimer(m),
+      ));
+    });
+  }
+
+  /* ---------- beat dots ---------- */
+
+  function renderDots() {
+    el.dots.innerHTML = '';
+    const n = engine.beatsPerMeasure;
+    for (let i = 0; i < n; i++) {
+      const beat = document.createElement('button');
+      beat.type = 'button';
+      beat.className = 'beat' + (engine.accents[i] ? ' accent' : '');
+      beat.setAttribute('aria-label', `${i + 1}${lang === 'zh' ? '拍' : ''} ${engine.accents[i] ? '♪' : ''}`.trim());
+
+      const dot = document.createElement('span');
+      dot.className = 'beat-dot';
+      beat.appendChild(dot);
+
+      const subs = document.createElement('span');
+      subs.className = 'subdots';
+      for (let s = 1; s < engine.subdivision; s++) {
+        const sd = document.createElement('span');
+        sd.className = 'subdot';
+        subs.appendChild(sd);
+      }
+      beat.appendChild(subs);
+
+      beat.addEventListener('click', () => {
+        engine.accents[i] = !engine.accents[i];
+        beat.classList.toggle('accent', engine.accents[i]);
+        saveTimer();
+      });
+      el.dots.appendChild(beat);
+    }
+  }
+
+  function pulseBeat(i) {
+    const b = el.dots.children[i];
+    if (!b) return;
+    b.classList.remove('hit');
+    void b.offsetWidth; // restart animation
+    b.classList.add('hit');
+  }
+
+  function pulseSub(beatIdx, subIdx) {
+    const b = el.dots.children[beatIdx];
+    if (!b) return;
+    const sd = b.querySelectorAll('.subdot')[subIdx - 1];
+    if (!sd) return;
+    sd.classList.add('hit');
+    setTimeout(() => sd.classList.remove('hit'), 90);
+  }
+
+  /* ---------- bpm ---------- */
+
+  function setBpm(v, opts = {}) {
+    engine.setBpm(v);
+    state.bpm = engine.bpm;
+    if (document.activeElement !== el.bpmInput || opts.forceInput) {
+      el.bpmInput.value = engine.bpm;
+    }
+    el.bpmSlider.value = engine.bpm;
+    updateTempoTerm();
+    updateWeight();
+    saveTimer();
+  }
+
+  function updateTempoTerm() {
+    const bpm = engine.bpm;
+    const row = TEMPO_TERMS.find(([lo, hi]) => bpm >= lo && bpm <= hi);
+    el.tempoTerm.textContent = row ? `${row[2]} · ${row[3]}` : '';
+  }
+
+  /* ---------- hold-to-repeat buttons ---------- */
+
+  function bindHoldRepeat(btn, fn) {
+    let iv = null;
+    let delay = 200;
+    let pointerHandled = false; // mouse/touch: pointerdown fires first, skip the trailing click
+    const start = (e) => {
+      e.preventDefault();
+      pointerHandled = true;
+      fn();
+      const step = () => {
+        fn();
+        delay = Math.max(40, delay * 0.9);
+        iv = setTimeout(step, delay);
+      };
+      iv = setTimeout(step, delay);
+    };
+    const stop = () => {
+      if (iv) { clearTimeout(iv); iv = null; }
+      delay = 200;
+      setTimeout(() => { pointerHandled = false; }, 300); // in case the pointer gesture ends without a click
+    };
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('click', () => {
+      if (pointerHandled) { pointerHandled = false; return; }
+      fn(); // keyboard activation (Enter/Space) only fires click
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => btn.addEventListener(ev, stop));
+  }
+
+  /* ---------- pendulum ---------- */
+
+  const MAX_ANGLE = 24;
+  let idleAngle = 0;
+
+  function buildScale() {
+    // decorative tick arc behind the pendulum
+    const NS = 'http://www.w3.org/2000/svg';
+    const cx = 200, cy = 208, r1 = 178, r2 = 190;
+    el.scaleSvg.innerHTML = '';
+    for (let a = -60; a <= 60; a += 5) {
+      const rad = ((a - 90) * Math.PI) / 180;
+      const len = a % 15 === 0 ? 12 : 6;
+      const x1 = cx + (r1 - len) * Math.cos(rad), y1 = cy + (r1 - len) * Math.sin(rad);
+      const x2 = cx + r2 * Math.cos(rad), y2 = cy + r2 * Math.sin(rad);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('stroke', 'currentColor');
+      line.setAttribute('stroke-width', a % 15 === 0 ? 2 : 1);
+      el.scaleSvg.appendChild(line);
+    }
+  }
+
+  function updateWeight() {
+    // like a real metronome: slow tempo → weight near the top of the arm
+    const f = 0.66 - 0.46 * ((engine.bpm - 20) / 280);
+    el.weight.style.top = `${(f * 100).toFixed(1)}%`;
+  }
+
+  /* ---------- transport ---------- */
+
+  function setPlaying(on) {
+    if (on) {
+      engine.start();
+      if (state.timerMin > 0) {
+        timerEndsAt = Date.now() + state.timerMin * 60000;
+        el.timerReadoutRow.hidden = false;
+      }
+    } else {
+      engine.stop();
+      timerEndsAt = 0;
+      el.timerReadoutRow.hidden = true;
+    }
+    el.playBtn.classList.toggle('playing', on);
+    el.playBtn.setAttribute('aria-label', t('playAria'));
+  }
+
+  const togglePlay = () => setPlaying(!engine.running);
+
+  /* ---------- tap tempo ---------- */
+
+  function onTap() {
+    const now = performance.now();
+    if (taps.length && now - taps[taps.length - 1] > 2000) taps = [];
+    taps.push(now);
+    if (taps.length > 8) taps.shift();
+
+    el.tapBtn.classList.add('tapped');
+    setTimeout(() => el.tapBtn.classList.remove('tapped'), 90);
+
+    if (taps.length >= 2) {
+      let sum = 0;
+      for (let i = 1; i < taps.length; i++) sum += taps[i] - taps[i - 1];
+      const avg = sum / (taps.length - 1);
+      setBpm(60000 / avg, { forceInput: true });
+    }
+    const label = t('tap');
+    el.tapBtn.innerHTML = `${label} <span class="tap-count">×${taps.length}</span>`;
+  }
+
+  /* ---------- setters ---------- */
+
+  function setNum(n) {
+    engine.setBeats(n);
+    state.num = engine.beatsPerMeasure;
+    state.accents = engine.accents;
+    el.sigNum.textContent = engine.beatsPerMeasure;
+    renderDots();
+    saveTimer();
+  }
+
+  function setDen(d) {
+    const i = DENS.indexOf(d);
+    if (i === -1) return;
+    state.den = d;
+    el.sigDen.textContent = d;
+    saveTimer();
+  }
+
+  function cycleDen(dir) {
+    const i = DENS.indexOf(state.den);
+    setDen(DENS[(i + dir + DENS.length) % DENS.length]);
+  }
+
+  function setSubdivision(n) {
+    engine.setSubdivision(n);
+    state.subdiv = n;
+    rebuildChips();
+    renderDots();
+    saveTimer();
+  }
+
+  function setSound(s) {
+    engine.sound = s;
+    state.sound = s;
+    rebuildChips();
+    saveTimer();
+  }
+
+  function setVolume(v) {
+    const val = clampInt(v, 0, 100, 80);
+    engine.volume = val / 100;
+    state.volume = val;
+    el.volumeSlider.value = val;
+    el.volIcon.textContent = val === 0 ? '🔇' : val < 50 ? '🔉' : '🔊';
+    saveTimer();
+  }
+
+  function setTimer(m) {
+    state.timerMin = m;
+    rebuildChips();
+    if (engine.running) {
+      if (m > 0) {
+        timerEndsAt = Date.now() + m * 60000;
+        el.timerReadoutRow.hidden = false;
+      } else {
+        timerEndsAt = 0;
+        el.timerReadoutRow.hidden = true;
+      }
+    }
+    saveTimer();
+  }
+
+  /* ---------- theme & lang ---------- */
+
+  function applyTheme(theme) {
+    state.theme = theme;
+    document.documentElement.dataset.theme = theme;
+    el.themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    saveTimer();
+  }
+
+  /* ---------- render loop ---------- */
+
+  function fmt(sec) {
+    const s = Math.max(0, Math.ceil(sec));
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function loop() {
+    requestAnimationFrame(loop);
+
+    if (engine.running && engine.context) {
+      const events = engine.collectDue();
+      for (const ev of events) {
+        if (ev.isMain) pulseBeat(ev.beat);
+        else pulseSub(ev.beat, ev.sub);
+      }
+
+      const bf = engine.beatFloat();
+      const angle = MAX_ANGLE * Math.cos(Math.PI * bf);
+      el.arm.style.transform = `rotate(${angle.toFixed(2)}deg)`;
+      idleAngle = angle;
+
+      if (timerEndsAt) {
+        const left = (timerEndsAt - Date.now()) / 1000;
+        el.timerLeft.textContent = fmt(left);
+        if (left <= 0) setPlaying(false);
+      }
+    } else if (Math.abs(idleAngle) > 0.05) {
+      idleAngle *= 0.86;
+      el.arm.style.transform = `rotate(${idleAngle.toFixed(2)}deg)`;
+    }
+  }
+
+  /* ---------- keyboard ---------- */
+
+  function onKey(e) {
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      togglePlay();
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      setBpm(engine.bpm + (e.shiftKey ? 5 : 1), { forceInput: true });
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setBpm(engine.bpm - (e.shiftKey ? 5 : 1), { forceInput: true });
+    } else if (e.key === 't' || e.key === 'T') {
+      onTap();
+    }
+  }
+
+  /* ---------- boot ---------- */
+
+  function boot() {
+    // engine initial state from persisted settings
+    engine.bpm = state.bpm;
+    engine.setBeats(state.num);
+    engine.accents = state.accents.slice(0, state.num);
+    engine.setSubdivision(state.subdiv);
+    engine.sound = state.sound;
+    engine.volume = state.volume / 100;
+
+    lang = I18N[state.lang] ? state.lang : 'zh';
+    const theme = state.theme
+      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    applyTheme(theme);
+
+    buildScale();
+    applyI18n();
+
+    // tempo controls
+    el.bpmInput.value = engine.bpm;
+    el.bpmSlider.value = engine.bpm;
+    updateWeight();
+    updateTempoTerm();
+
+    bindHoldRepeat(el.bpmDown, () => setBpm(engine.bpm - 1, { forceInput: true }));
+    bindHoldRepeat(el.bpmUp, () => setBpm(engine.bpm + 1, { forceInput: true }));
+
+    el.bpmSlider.addEventListener('input', () => setBpm(+el.bpmSlider.value, { forceInput: true }));
+    el.bpmInput.addEventListener('focus', () => el.bpmInput.select());
+    el.bpmInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') el.bpmInput.blur();
+    });
+    el.bpmInput.addEventListener('blur', () => {
+      const v = parseInt(el.bpmInput.value.replace(/\D/g, ''), 10);
+      setBpm(Number.isNaN(v) ? engine.bpm : v, { forceInput: true });
+    });
+
+    // transport
+    el.playBtn.addEventListener('click', togglePlay);
+    el.tapBtn.addEventListener('click', onTap);
+
+    // time signature
+    el.sigNum.textContent = engine.beatsPerMeasure;
+    el.sigDen.textContent = state.den;
+    bindHoldRepeat(el.numUp, () => setNum(engine.beatsPerMeasure + 1));
+    bindHoldRepeat(el.numDown, () => setNum(engine.beatsPerMeasure - 1));
+    el.denUp.addEventListener('click', () => cycleDen(1));
+    el.denDown.addEventListener('click', () => cycleDen(-1));
+
+    // volume
+    el.volumeSlider.value = state.volume;
+    setVolume(state.volume);
+
+    // top actions
+    el.langToggle.addEventListener('click', () => {
+      lang = lang === 'zh' ? 'en' : 'zh';
+      state.lang = lang;
+      applyI18n();
+      saveTimer();
+    });
+    el.themeToggle.addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+
+    // keyboard + misc
+    document.addEventListener('keydown', onKey);
+
+    // iOS/Chrome autoplay policy: unlock audio on first gesture
+    document.addEventListener('pointerdown', () => {
+      if (engine.context && engine.context.state === 'suspended') engine.context.resume();
+    }, { passive: true });
+
+    // keep time in background tabs
+    document.addEventListener('visibilitychange', () => {
+      engine.setBackgroundMode(document.hidden);
+    });
+
+    requestAnimationFrame(loop);
+  }
+
+  boot();
+})();
