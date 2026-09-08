@@ -131,7 +131,7 @@
       this.bpm = 120;
       this.beatsPerMeasure = 4;
       this.pattern = [0];                  // click offsets within one beat, 0..1, ascending
-      this.accents = [true, false, false, false]; // per main beat
+      this.accents = [1, 0, 0, 0];        // per main beat: 0 normal · 1 accent · 2 mute
       this.volume = 0.8;                 // 0..1
       this.sound = 'wood';
 
@@ -169,7 +169,7 @@
     setBeats(n) {
       this.beatsPerMeasure = clamp(Math.round(n), 1, 16);
       const acc = this.accents.slice(0, this.beatsPerMeasure);
-      while (acc.length < this.beatsPerMeasure) acc.push(false);
+      while (acc.length < this.beatsPerMeasure) acc.push(0);
       this.accents = acc;
     }
 
@@ -234,19 +234,21 @@
 
     _scheduleClick(beat, clickIdx, t) {
       const isMain = clickIdx === 0;
-      const accent = isMain && !!this.accents[beat];
-      const level = isMain
-        ? (accent ? this.volume : this.volume * 0.72)
-        : this.volume * 0.38;
+      const st = this.accents[beat] || 0;   // beat state applies to its sub clicks too
+      const muted = st === 2;
+      const level = muted ? 0
+        : isMain
+          ? (st === 1 ? this.volume : this.volume * 0.72)
+          : this.volume * 0.38;
 
       if (level > 0.001) {
-        const nodes = SOUNDS[this.sound](this._ctx, this._master, t, level, accent) || [];
+        const nodes = SOUNDS[this.sound](this._ctx, this._master, t, level, st === 1) || [];
         for (const n of nodes) {
           this._active.add(n);
           n.onended = () => this._active.delete(n);
         }
       }
-      this._drawQueue.push({ time: t, beat, sub: clickIdx, isMain, accent });
+      this._drawQueue.push({ time: t, beat, sub: clickIdx, isMain, muted });
     }
 
     /** Pop visual events whose audio time is due. Call from rAF. */

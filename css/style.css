@@ -122,6 +122,10 @@ body {
   height: 26px;
   background: var(--accent);
 }
+.beat.mute .beat-dot {
+  background: transparent;
+  border: 2px solid var(--dot);
+}
 .beat.hit .beat-dot {
   animation: pop 0.22s ease;
 }

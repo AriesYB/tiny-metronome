@@ -18,12 +18,12 @@
       volume: '音量',
       timer: '定时停止',
       remaining: '剩余时间',
-      hint: '空格 播放/停止 · ↑ ↓ 调节速度（Shift ±5）· T 测速 · 点击圆点切换重音',
+      hint: '空格 播放/停止 · ↑ ↓ 调节速度（Shift ±5）· T 测速 · 点击圆点循环 重音/静音',
       playAria: '播放 / 停止',
       decAria: '速度 -1',
       incAria: '速度 +1',
       bpmSliderAria: 'BPM 滑块',
-      beatsAria: '每小节节拍，点击切换重音',
+      beatsAria: '每小节节拍，点击循环 重音/静音',
       numUpAria: '每小节拍数 +1',
       numDownAria: '每小节拍数 -1',
       denUpAria: '音符单位 上一个',
@@ -41,12 +41,12 @@
       volume: 'Volume',
       timer: 'Timer',
       remaining: 'Remaining',
-      hint: 'Space play/stop · ↑ ↓ tempo (Shift ±5) · T tap · click a dot to toggle accent',
+      hint: 'Space play/stop · ↑ ↓ tempo (Shift ±5) · T tap · click a dot to cycle accent/mute',
       playAria: 'Play / stop',
       decAria: 'tempo -1',
       incAria: 'tempo +1',
       bpmSliderAria: 'BPM slider',
-      beatsAria: 'Beats per measure — click to toggle accent',
+      beatsAria: 'Beats per measure — click to cycle accent/mute',
       numUpAria: 'beats per measure +1',
       numDownAria: 'beats per measure -1',
       denUpAria: 'note value up',
@@ -187,7 +187,7 @@
     sound: 'wood',
     volume: 80,
     timerMin: 0,
-    accents: [true, false, false, false],
+    accents: [1, 0, 0, 0], // per beat: 0 normal · 1 accent · 2 mute
   };
   let state = load();
 
@@ -217,6 +217,7 @@
       s.volume = clampInt(s.volume, 0, 100, 80);
       if (!TIMERS.includes(s.timerMin)) s.timerMin = 0;
       if (!Array.isArray(s.accents)) s.accents = defaults.accents;
+      else s.accents = s.accents.map((v) => (v === true || v === 1 ? 1 : v === 2 ? 2 : 0)); // legacy booleans → tri-state
       return s;
     } catch (e) {
       return { ...defaults };
@@ -335,14 +336,22 @@
 
   /* ---------- beat dots ---------- */
 
+  function applyBeatState(beat, i) {
+    const st = engine.accents[i] || 0;
+    beat.classList.toggle('accent', st === 1);
+    beat.classList.toggle('mute', st === 2);
+    const mark = st === 1 ? (lang === 'zh' ? '重音' : 'accent')
+      : st === 2 ? (lang === 'zh' ? '静音' : 'mute') : '';
+    beat.setAttribute('aria-label', `${lang === 'zh' ? `${i + 1}拍` : `beat ${i + 1}`}${mark ? ` ${mark}` : ''}`);
+  }
+
   function renderDots() {
     el.dots.innerHTML = '';
     const n = engine.beatsPerMeasure;
     for (let i = 0; i < n; i++) {
       const beat = document.createElement('button');
       beat.type = 'button';
-      beat.className = 'beat' + (engine.accents[i] ? ' accent' : '');
-      beat.setAttribute('aria-label', `${i + 1}${lang === 'zh' ? '拍' : ''} ${engine.accents[i] ? '♪' : ''}`.trim());
+      beat.className = 'beat';
 
       const dot = document.createElement('span');
       dot.className = 'beat-dot';
@@ -358,9 +367,10 @@
       }
       beat.appendChild(subs);
 
+      applyBeatState(beat, i);
       beat.addEventListener('click', () => {
-        engine.accents[i] = !engine.accents[i];
-        beat.classList.toggle('accent', engine.accents[i]);
+        engine.accents[i] = ((engine.accents[i] || 0) + 1) % 3; // normal → accent → mute
+        applyBeatState(beat, i);
         saveTimer();
       });
       el.dots.appendChild(beat);
@@ -560,6 +570,7 @@
     if (engine.running && engine.context) {
       const events = engine.collectDue();
       for (const ev of events) {
+        if (ev.muted) continue;
         if (ev.isMain) pulseBeat(ev.beat);
         else pulseSub(ev.beat, ev.sub);
       }
