@@ -391,7 +391,9 @@ body {
 }
 .pattern-chip .nota ellipse,
 .pattern-chip .nota rect,
-.pattern-chip .nota circle { fill: currentColor; }
+.pattern-chip .nota circle,
+.pattern-chip .nota path { fill: currentColor; }
+.pattern-chip .nota ellipse.hollow { fill: none; stroke: currentColor; }
 .pattern-chip .nota text { fill: currentColor; font-family: inherit; }
 
 /* volume */

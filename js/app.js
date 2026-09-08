@@ -89,38 +89,81 @@
     { id: 'syn', off: [0, 0.25, 0.75],                notes: [{ s: true }, {}, { s: true }],                     triplet: false },
   ];
   const PATTERN_LABELS = {
-    zh: { q: '四分', e: '八分', t: '三连音', s: '十六分', dA: '附点', dB: '反附点', a2s: '前八后十六', s2a: '前十六后八', syn: '切分' },
-    en: { q: 'Quarter', e: 'Eighth', t: 'Triplet', s: '16ths', dA: 'Dotted', dB: 'Reverse', a2s: '8th+16ths', s2a: '16ths+8th', syn: 'Syncopa' },
+    zh: {
+      q:   { 2: '二分', 4: '四分', 8: '八分', 16: '十六分' },
+      e:   { 2: '四分', 4: '八分', 8: '十六分', 16: '三十二分' },
+      t:   '三连音',
+      s:   { 2: '八分', 4: '十六分', 8: '三十二分', 16: '六十四分' },
+      dA:  '附点',
+      dB:  '反附点',
+      a2s: { 2: '前四后八', 4: '前八后十六', 8: '前十六后三十二', 16: '前三十二后六十四' },
+      s2a: { 2: '前八后四', 4: '前十六后八', 8: '前三十二后十六', 16: '前六十四后三十二' },
+      syn: '切分',
+    },
+    en: {
+      q:   { 2: 'Half', 4: 'Quarter', 8: '8th', 16: '16th' },
+      e:   { 2: 'Quarter', 4: 'Eighth', 8: '16ths', 16: '32nds' },
+      t:   'Triplet',
+      s:   { 2: '8ths', 4: '16ths', 8: '32nds', 16: '64ths' },
+      dA:  'Dotted',
+      dB:  'Reverse',
+      a2s: { 2: '4th+8ths', 4: '8th+16ths', 8: '16ths+32nds', 16: '32nds+64ths' },
+      s2a: { 2: '8ths+4th', 4: '16ths+8th', 8: '32nds+16ths', 16: '64ths+32nds' },
+      syn: 'Syncopa',
+    },
   };
+  // level-specific labels shift with the denominator; the rest are fixed
+  function patternLabel(id) {
+    const l = PATTERN_LABELS[lang][id] || id;
+    return typeof l === 'string' ? l : (l[state.den] || l[4]);
+  }
   // legacy settings used evenly-spaced subdivisions 1|2|3|4
   const SUBDIV_MIGRATE = { 1: 'q', 2: 'e', 3: 't', 4: 's' };
 
-  /** Small beamed-note notation icon, rendered in currentColor. */
-  function notationSvg(p) {
+  /** Small beamed-note notation icon, rendered in currentColor.
+   *  `den` (time-signature denominator) sets the beat note value, so the
+   *  icon notates the pattern at the current unit: at 8/x the "eighth"
+   *  pattern is drawn as two sixteenths, and so on. */
+  function notationSvg(p, den = 4) {
+    const L = { 2: -1, 4: 0, 8: 1, 16: 2 }[den] ?? 0; // beat note: -1 half … 2 sixteenth
     const notes = p.notes;
     const n = notes.length;
-    const sp = 10.5, x0 = 7, headY = 20, stemTop = 6;
+    const lv = notes.map((nt) => (n === 1 ? L : L + 1 + (nt.s ? 1 : 0)));
+    const maxLv = Math.max(...lv);
+    const sp = 10.5, x0 = 7, stemTop = 6;
+    const headY = 20 + Math.max(0, maxLv - 2) * 4; // extra room under 3–4 beams
     const stemX = (i) => x0 + i * sp + 2.9;
     const width = 14 + (n - 1) * sp + (notes[n - 1].d ? 5 : 0);
     let out = '';
     notes.forEach((nt, i) => {
       const cx = x0 + i * sp;
-      out += `<ellipse cx="${cx}" cy="${headY}" rx="3.4" ry="2.5" transform="rotate(-18 ${cx} ${headY})"/>`;
+      out += lv[i] < 0 // half note: hollow head
+        ? `<ellipse class="hollow" cx="${cx}" cy="${headY}" rx="3.4" ry="2.5" fill="none" stroke="currentColor" stroke-width="1.4" transform="rotate(-18 ${cx} ${headY})"/>`
+        : `<ellipse cx="${cx}" cy="${headY}" rx="3.4" ry="2.5" transform="rotate(-18 ${cx} ${headY})"/>`;
       out += `<rect x="${cx + 2.5}" y="${stemTop}" width="1.3" height="${headY - stemTop - 1.5}"/>`;
       if (nt.d) out += `<circle cx="${cx + 6.3}" cy="${headY - 0.5}" r="1.35"/>`;
     });
-    if (n > 1) {
-      out += `<rect x="${stemX(0) - 0.2}" y="${stemTop}" width="${stemX(n - 1) - stemX(0) + 1.7}" height="2.4"/>`;
+    // beam row k links adjacent notes whose level is ≥ k
+    const beamed = notes.map(() => false);
+    for (let k = 1; k <= maxLv; k++) {
       for (let i = 0; i < n - 1; i++) {
-        if (notes[i].s && notes[i + 1].s) {
-          out += `<rect x="${stemX(i) - 0.2}" y="${stemTop + 4}" width="${stemX(i + 1) - stemX(i) + 1.7}" height="2.2"/>`;
+        if (lv[i] >= k && lv[i + 1] >= k) {
+          out += `<rect x="${stemX(i) - 0.2}" y="${stemTop + (k - 1) * 4}" width="${stemX(i + 1) - stemX(i) + 1.7}" height="${k === 1 ? 2.4 : 2.2}"/>`;
+          beamed[i] = beamed[i + 1] = true;
         }
       }
     }
+    // flags on short notes that end up un-beamed (e.g. ♪ ♩ ♪ at 2/x)
+    notes.forEach((nt, i) => {
+      for (let f = 0; f < (beamed[i] ? 0 : lv[i]); f++) {
+        const y = stemTop + f * 3.6;
+        out += `<path d="M ${stemX(i) + 1.4} ${y} c 2.4 1.4 3.3 3 2.8 5.8 c -0.9 -1.3 -1.7 -1.5 -2.8 -1.7 z"/>`;
+      }
+    });
     if (p.triplet) {
       out += `<text x="${(stemX(0) + stemX(n - 1)) / 2}" y="5" font-size="7" font-weight="700" text-anchor="middle">3</text>`;
     }
-    return `<svg class="nota" viewBox="0 0 ${width} 25" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${out}</svg>`;
+    return `<svg class="nota" viewBox="0 0 ${width} ${headY + 5}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${out}</svg>`;
   }
 
   function patternById(id) {
@@ -262,12 +305,12 @@
     el.subdivChips.innerHTML = '';
     PATTERNS.forEach((p) => {
       const chip = makeChip(
-        PATTERN_LABELS[lang][p.id] || p.id,
+        patternLabel(p.id),
         state.pattern === p.id,
         () => setPatternId(p.id),
       );
       chip.classList.add('pattern-chip');
-      chip.insertAdjacentHTML('afterbegin', notationSvg(p));
+      chip.insertAdjacentHTML('afterbegin', notationSvg(p, state.den));
       el.subdivChips.appendChild(chip);
     });
 
@@ -447,6 +490,7 @@
     if (i === -1) return;
     state.den = d;
     el.sigDen.textContent = d;
+    rebuildChips(); // notation icons + labels shift with the beat unit
     saveTimer();
   }
 
