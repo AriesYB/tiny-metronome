@@ -1,6 +1,8 @@
-# 节拍器 · Open Metronome
+# Maelzel · 开源在线节拍器
 
 免费、开源、零依赖的在线节拍器，用 Web Audio API 独立实现，所有代码与音色均为原创，可离线使用。
+
+> 名字出处：Johann Maelzel（约翰·梅尔策尔）于 1815 年取得节拍器专利，乐谱上速度标记的缩写 **MM**（*Maelzel's Metronome*）正是源自他的名字。
 
 A free, open-source, zero-dependency online metronome, independently implemented with the Web Audio API. Works offline.
 
