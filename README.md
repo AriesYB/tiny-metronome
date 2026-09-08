@@ -1,10 +1,10 @@
-# Maelzel · 开源在线节拍器
+# Tiny Metronome · 轻量开源在线节拍器
 
 免费、开源、零依赖的在线节拍器，用 Web Audio API 独立实现，所有代码与音色均为原创，可离线使用。
 
-> 名字出处：Johann Maelzel（约翰·梅尔策尔）于 1815 年取得节拍器专利，乐谱上速度标记的缩写 **MM**（*Maelzel's Metronome*）正是源自他的名字。
+> 小而全：6 个文件、约 64KB、零依赖、零构建——双击 `index.html` 就能跑，克隆一份放进 U 盘也是完整的节拍器。
 
-A free, open-source, zero-dependency online metronome, independently implemented with the Web Audio API. Works offline.
+A tiny but full-featured, zero-dependency online metronome, independently implemented with the Web Audio API. Works offline.
 
 ## 功能 / Features
 

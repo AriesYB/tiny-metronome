@@ -1,5 +1,5 @@
 /* ============================================================
- * Maelzel — UI wiring
+ * Tiny Metronome — UI wiring
  * ============================================================ */
 (function () {
   'use strict';
@@ -129,8 +129,8 @@
 
   const TIMERS = [0, 1, 2, 5, 10, 15, 30];
   const DENS = [2, 4, 8, 16];
-  const STORE_KEY = 'maelzel.v1';
-  const LEGACY_STORE_KEY = 'open-metronome.v1';
+  const STORE_KEY = 'tiny-metronome.v1';
+  const LEGACY_STORE_KEYS = ['maelzel.v1', 'open-metronome.v1'];
 
   /* ---------- state ---------- */
 
@@ -157,7 +157,8 @@
 
   function load() {
     try {
-      const stored = localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_STORE_KEY);
+      const stored = localStorage.getItem(STORE_KEY)
+        || LEGACY_STORE_KEYS.map((k) => localStorage.getItem(k)).find(Boolean);
       if (!stored) return { ...defaults };
       const raw = JSON.parse(stored);
       const s = { ...defaults, ...raw };

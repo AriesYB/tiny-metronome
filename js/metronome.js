@@ -1,5 +1,5 @@
 /* ============================================================
- * Maelzel — audio engine
+ * Tiny Metronome — audio engine
  * Web Audio API lookahead scheduler ("A Tale of Two Clocks").
  * All sounds are synthesized; no audio assets, no dependencies.
  * ============================================================ */
