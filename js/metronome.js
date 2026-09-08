@@ -142,8 +142,6 @@
       this._beatIdx = 0;                 // beat within the measure
       this._clickIdx = 0;                // index into this.pattern
       this._beatStart = 0;               // audio time of the current beat's first click
-      this._absBeat = 0;                 // pendulum anchor: beats since start
-      this._anchorTime = 0;
       this._lookahead = LOOKAHEAD;
       this._drawQueue = [];              // { time, beat, sub, isMain, accent }
       this._active = new Set();          // scheduled sources, for instant stop
@@ -197,8 +195,6 @@
       this.running = true;
       this._beatIdx = 0;
       this._clickIdx = 0;
-      this._absBeat = 0;
-      this._anchorTime = this._ctx.currentTime + 0.08;
       this._drawQueue.length = 0;
       this._beatStart = this._ctx.currentTime + 0.08;
       this._nextClickTime = this._beatStart + this.pattern[0] * (60 / this.bpm);
@@ -243,8 +239,6 @@
         ? (accent ? this.volume : this.volume * 0.72)
         : this.volume * 0.38;
 
-      if (isMain) { this._absBeat += 1; this._anchorTime = t; }
-
       if (level > 0.001) {
         const nodes = SOUNDS[this.sound](this._ctx, this._master, t, level, accent) || [];
         for (const n of nodes) {
@@ -263,12 +257,6 @@
         due.push(this._drawQueue.shift());
       }
       return due;
-    }
-
-    /** Continuous beat position (for the pendulum), valid while running. */
-    beatFloat() {
-      if (!this._ctx) return 0;
-      return this._absBeat + (this._ctx.currentTime - this._anchorTime) / (60 / this.bpm);
     }
 
     /** Keep scheduling precisely when the tab is backgrounded. */

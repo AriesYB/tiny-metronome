@@ -205,9 +205,6 @@
     langToggle: $('#langToggle'),
     themeToggle: $('#themeToggle'),
     themeIcon: $('#themeIcon'),
-    arm: $('#arm'),
-    weight: $('#weight'),
-    scaleSvg: $('#scaleSvg'),
     dots: $('#dots'),
     bpmInput: $('#bpmInput'),
     bpmSlider: $('#bpmSlider'),
@@ -354,7 +351,6 @@
     }
     el.bpmSlider.value = engine.bpm;
     updateTempoTerm();
-    updateWeight();
     saveTimer();
   }
 
@@ -392,36 +388,6 @@
       fn(); // keyboard activation (Enter/Space) only fires click
     });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => btn.addEventListener(ev, stop));
-  }
-
-  /* ---------- pendulum ---------- */
-
-  const MAX_ANGLE = 24;
-  let idleAngle = 0;
-
-  function buildScale() {
-    // decorative tick arc behind the pendulum
-    const NS = 'http://www.w3.org/2000/svg';
-    const cx = 200, cy = 208, r1 = 178, r2 = 190;
-    el.scaleSvg.innerHTML = '';
-    for (let a = -60; a <= 60; a += 5) {
-      const rad = ((a - 90) * Math.PI) / 180;
-      const len = a % 15 === 0 ? 12 : 6;
-      const x1 = cx + (r1 - len) * Math.cos(rad), y1 = cy + (r1 - len) * Math.sin(rad);
-      const x2 = cx + r2 * Math.cos(rad), y2 = cy + r2 * Math.sin(rad);
-      const line = document.createElementNS(NS, 'line');
-      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-      line.setAttribute('stroke', 'currentColor');
-      line.setAttribute('stroke-width', a % 15 === 0 ? 2 : 1);
-      el.scaleSvg.appendChild(line);
-    }
-  }
-
-  function updateWeight() {
-    // like a real metronome: slow tempo → weight near the top of the arm
-    const f = 0.66 - 0.46 * ((engine.bpm - 20) / 280);
-    el.weight.style.top = `${(f * 100).toFixed(1)}%`;
   }
 
   /* ---------- transport ---------- */
@@ -554,19 +520,11 @@
         else pulseSub(ev.beat, ev.sub);
       }
 
-      const bf = engine.beatFloat();
-      const angle = MAX_ANGLE * Math.cos(Math.PI * bf);
-      el.arm.style.transform = `rotate(${angle.toFixed(2)}deg)`;
-      idleAngle = angle;
-
       if (timerEndsAt) {
         const left = (timerEndsAt - Date.now()) / 1000;
         el.timerLeft.textContent = fmt(left);
         if (left <= 0) setPlaying(false);
       }
-    } else if (Math.abs(idleAngle) > 0.05) {
-      idleAngle *= 0.86;
-      el.arm.style.transform = `rotate(${idleAngle.toFixed(2)}deg)`;
     }
   }
 
@@ -606,13 +564,11 @@
       || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     applyTheme(theme);
 
-    buildScale();
     applyI18n();
 
     // tempo controls
     el.bpmInput.value = engine.bpm;
     el.bpmSlider.value = engine.bpm;
-    updateWeight();
     updateTempoTerm();
 
     bindHoldRepeat(el.bpmDown, () => setBpm(engine.bpm - 1, { forceInput: true }));
