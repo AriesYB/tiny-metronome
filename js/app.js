@@ -15,7 +15,6 @@
       sig: '拍号',
       subdiv: '节奏型',
       sound: '音色',
-      volume: '音量',
       timer: '定时停止',
       remaining: '剩余时间',
       hint: '空格 播放/停止 · ↑ ↓ 调节速度（Shift ±5）· T 测速 · 点击圆点循环 重音/静音',
@@ -24,6 +23,43 @@
       incAria: '速度 +1',
       bpmSliderAria: 'BPM 滑块',
       beatsAria: '每小节节拍，点击循环 重音/静音',
+      helpAria: '使用说明',
+      helpTitle: '使用说明',
+      closeAria: '关闭',
+      helpSections: [
+        { h: '节拍圆点', items: [
+          '每个圆点代表一拍，点击循环切换：普通（小灰圆）→ 重音（大蓝圆）→ 静音（空心圆）',
+          '静音的拍整拍静默，包括该拍下的子拍；可借此组合复杂重音练习',
+          '圆点下方的小圆点为节奏型的子拍位置',
+        ] },
+        { h: '速度', items: [
+          '输入框直接输入 BPM（20–300），回车确认',
+          '滑块拖动微调；± 按钮点按 ±1，长按加速',
+          '下方实时显示速度术语（Grave 庄板 → Prestissimo 最急板）',
+        ] },
+        { h: '点击测速', items: [
+          '随节拍连续点击按钮，自动按点击间隔计算 BPM',
+          '间隔超过 2 秒重新计数；按钮上的 ×N 为本次已点击次数',
+        ] },
+        { h: '拍号与节奏型', items: [
+          '左侧调节每小节拍数（1–16），右侧调节音符单位（2/4/8/16）',
+          '节奏型的记谱图标与名称随音符单位自动换算（如 8/x 下「八分」显示为两个十六分音符）',
+          '9 种节奏型：四分 / 八分 / 三连音 / 十六分 / 附点 / 反附点 / 前八后十六 / 前十六后八 / 切分，切换在下一拍干净生效',
+        ] },
+        { h: '音色与定时', items: [
+          '4 种实时合成音色：响板 / 电子音 / 底鼓 / 踩镲',
+          '定时停止：到时自动停止播放，播放中显示剩余时间',
+        ] },
+        { h: '键盘快捷键', items: [
+          '空格：播放 / 停止',
+          '↑ ↓（或 ← →）：BPM ±1，加按 Shift 为 ±5',
+          'T：点击测速',
+        ] },
+        { h: '其他', items: [
+          '右上角按钮：使用说明 / 语言 / 深浅主题',
+          '所有设置自动保存在本地，刷新或重开后保留',
+        ] },
+      ],
       numUpAria: '每小节拍数 +1',
       numDownAria: '每小节拍数 -1',
       denUpAria: '音符单位 上一个',
@@ -38,7 +74,6 @@
       sig: 'Time',
       subdiv: 'Pattern',
       sound: 'Sound',
-      volume: 'Volume',
       timer: 'Timer',
       remaining: 'Remaining',
       hint: 'Space play/stop · ↑ ↓ tempo (Shift ±5) · T tap · click a dot to cycle accent/mute',
@@ -47,6 +82,43 @@
       incAria: 'tempo +1',
       bpmSliderAria: 'BPM slider',
       beatsAria: 'Beats per measure — click to cycle accent/mute',
+      helpAria: 'Help',
+      helpTitle: 'How to use',
+      closeAria: 'Close',
+      helpSections: [
+        { h: 'Beat dots', items: [
+          'Each dot is one beat — click to cycle: normal (small grey) → accent (large blue) → muted (hollow ring)',
+          'A muted beat is fully silent, including its subdivisions — combine states for accent practice',
+          'The small dots under a beat show subdivision positions of the pattern',
+        ] },
+        { h: 'Tempo', items: [
+          'Type a BPM (20–300) in the box and press Enter',
+          'Drag the slider for fine control; tap ± for ±1, hold to accelerate',
+          'The tempo term (Grave → Prestissimo) updates live below',
+        ] },
+        { h: 'Tap tempo', items: [
+          'Tap along with the beat — BPM is computed from your tap intervals',
+          'A gap over 2 s restarts the count; ×N shows taps used',
+        ] },
+        { h: 'Time signature & patterns', items: [
+          'Left stepper: beats per measure (1–16); right stepper: note unit (2/4/8/16)',
+          'Pattern notation shifts with the note unit (at 8/x the “eighth” pattern shows two sixteenths)',
+          '9 patterns: quarter / eighth / triplet / 16ths / dotted / reverse / 8th+16ths / 16ths+8th / syncopa — changes take effect cleanly on the next beat',
+        ] },
+        { h: 'Sound & timer', items: [
+          '4 synthesized sounds: wood / beep / kick / hat',
+          'Timer stops playback automatically and shows the remaining time',
+        ] },
+        { h: 'Keyboard shortcuts', items: [
+          'Space: play / stop',
+          '↑ ↓ (or ← →): BPM ±1, hold Shift for ±5',
+          'T: tap tempo',
+        ] },
+        { h: 'More', items: [
+          'Top-right buttons: help / language / light–dark theme',
+          'All settings are saved locally and restored on reload',
+        ] },
+      ],
       numUpAria: 'beats per measure +1',
       numDownAria: 'beats per measure -1',
       denUpAria: 'note value up',
@@ -185,7 +257,6 @@
     den: 4,
     pattern: 'q',
     sound: 'wood',
-    volume: 80,
     timerMin: 0,
     accents: [1, 0, 0, 0], // per beat: 0 normal · 1 accent · 2 mute
   };
@@ -214,7 +285,7 @@
         s.pattern = defaults.pattern;
       }
       if (!Metronome.SOUNDS.includes(s.sound)) s.sound = 'wood';
-      s.volume = clampInt(s.volume, 0, 100, 80);
+      delete s.volume; // volume control removed; engine keeps its default level
       if (!TIMERS.includes(s.timerMin)) s.timerMin = 0;
       if (!Array.isArray(s.accents)) s.accents = defaults.accents;
       else s.accents = s.accents.map((v) => (v === true || v === 1 ? 1 : v === 2 ? 2 : 0)); // legacy booleans → tri-state
@@ -249,6 +320,10 @@
     langToggle: $('#langToggle'),
     themeToggle: $('#themeToggle'),
     themeIcon: $('#themeIcon'),
+    helpToggle: $('#helpToggle'),
+    helpOverlay: $('#helpOverlay'),
+    helpClose: $('#helpClose'),
+    helpBody: $('#helpBody'),
     dots: $('#dots'),
     bpmInput: $('#bpmInput'),
     bpmSlider: $('#bpmSlider'),
@@ -266,8 +341,6 @@
     subdivChips: $('#subdivChips'),
     soundChips: $('#soundChips'),
     timerChips: $('#timerChips'),
-    volumeSlider: $('#volumeSlider'),
-    volIcon: $('#volIcon'),
     timerReadoutRow: $('#timerReadoutRow'),
     timerLeft: $('#timerLeft'),
   };
@@ -286,7 +359,22 @@
     el.tapBtn.innerHTML = lang === 'zh' ? '点击测速' : 'Tap tempo';
     rebuildChips();
     renderDots();
+    renderHelp();
     updateTempoTerm();
+  }
+
+  /* ---------- help overlay ---------- */
+
+  function renderHelp() {
+    el.helpBody.innerHTML = t('helpSections').map((sec) =>
+      `<h3>${sec.h}</h3><ul>${sec.items.map((it) => `<li>${it}</li>`).join('')}</ul>`
+    ).join('');
+  }
+
+  function setHelp(open) {
+    el.helpOverlay.hidden = !open;
+    if (open) el.helpClose.focus();
+    else el.helpToggle.focus();
   }
 
   /* ---------- chips ---------- */
@@ -524,15 +612,6 @@
     saveTimer();
   }
 
-  function setVolume(v) {
-    const val = clampInt(v, 0, 100, 80);
-    engine.volume = val / 100;
-    state.volume = val;
-    el.volumeSlider.value = val;
-    el.volIcon.textContent = val === 0 ? '🔇' : val < 50 ? '🔉' : '🔊';
-    saveTimer();
-  }
-
   function setTimer(m) {
     state.timerMin = m;
     rebuildChips();
@@ -589,6 +668,14 @@
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
 
+    if (!el.helpOverlay.hidden) {
+      if (e.key === 'Escape' || e.code === 'Space') {
+        e.preventDefault();
+        setHelp(false);
+      }
+      return;
+    }
+
     if (e.code === 'Space') {
       e.preventDefault();
       togglePlay();
@@ -612,7 +699,6 @@
     engine.accents = state.accents.slice(0, state.num);
     engine.setPattern(patternById(state.pattern).off);
     engine.sound = state.sound;
-    engine.volume = state.volume / 100;
 
     lang = I18N[state.lang] ? state.lang : 'zh';
     const theme = state.theme
@@ -651,10 +737,6 @@
     el.denUp.addEventListener('click', () => cycleDen(1));
     el.denDown.addEventListener('click', () => cycleDen(-1));
 
-    // volume
-    el.volumeSlider.value = state.volume;
-    setVolume(state.volume);
-
     // top actions
     el.langToggle.addEventListener('click', () => {
       lang = lang === 'zh' ? 'en' : 'zh';
@@ -664,6 +746,11 @@
     });
     el.themeToggle.addEventListener('click', () => {
       applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    el.helpToggle.addEventListener('click', () => setHelp(true));
+    el.helpClose.addEventListener('click', () => setHelp(false));
+    el.helpOverlay.addEventListener('click', (e) => {
+      if (e.target === el.helpOverlay) setHelp(false);
     });
 
     // keyboard + misc

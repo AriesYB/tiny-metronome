@@ -22,6 +22,7 @@
         <h1 data-i18n="title">节拍器</h1>
       </div>
       <div class="top-actions">
+        <button id="helpToggle" class="ghost-btn icon-only" aria-label="Help" data-i18n-aria="helpAria">?</button>
         <button id="langToggle" class="ghost-btn" aria-label="Language">EN</button>
         <button id="themeToggle" class="ghost-btn icon-only" aria-label="Theme"><span id="themeIcon">🌙</span></button>
       </div>
@@ -85,14 +86,6 @@
       </div>
 
       <div class="setting">
-        <label class="setting-label" data-i18n="volume">音量</label>
-        <div class="setting-control volume-control">
-          <span class="vol-icon" id="volIcon" aria-hidden="true">🔊</span>
-          <input type="range" id="volumeSlider" class="slider" min="0" max="100" step="1" value="80" />
-        </div>
-      </div>
-
-      <div class="setting">
         <label class="setting-label" data-i18n="timer">定时停止</label>
         <div class="setting-control chips" id="timerChips"></div>
       </div>
@@ -107,6 +100,17 @@
       <p class="credit">Tiny Metronome · <a href="https://github.com" target="_blank" rel="noopener">GitHub</a> · MIT</p>
     </footer>
   </main>
+
+  <!-- help -->
+  <div class="help-overlay" id="helpOverlay" hidden>
+    <div class="help-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="help-head">
+        <h2 id="helpTitle" data-i18n="helpTitle">使用说明</h2>
+        <button id="helpClose" class="help-close" aria-label="Close" data-i18n-aria="closeAria">✕</button>
+      </div>
+      <div class="help-body" id="helpBody"></div>
+    </div>
+  </div>
 
   <script src="js/metronome.js"></script>
   <script src="js/app.js"></script>
