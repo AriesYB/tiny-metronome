@@ -7,3 +7,7 @@ Desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# Wrangler
+.wrangler/
+node_modules/
