@@ -1,5 +1,7 @@
 # Tiny Metronome · 轻量开源在线节拍器
 
+**在线使用 / Live: <https://tm.ntrbiss.top>**
+
 免费、开源、零依赖的在线节拍器，用 Web Audio API 独立实现，所有代码与音色均为原创，可离线使用。
 
 > 小而全：6 个文件、约 64KB、零依赖、零构建——双击 `index.html` 就能跑，克隆一份放进 U 盘也是完整的节拍器。
