@@ -3,8 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Tiny Metronome · 开源在线节拍器</title>
-  <meta name="description" content="Tiny Metronome — 免费开源的在线节拍器：BPM 20-300、拍号、9 种节奏型、逐拍重音、点击测速、定时停止。零依赖、零构建，可离线使用。" />
+  <title>Tiny Metronome · 开源在线节拍器 - Free Online Metronome</title>
+  <meta name="description" content="Tiny Metronome — 免费开源的在线节拍器：BPM 20-300、拍号、9 种节奏型、逐拍重音、点击测速、定时停止。零依赖、零构建，可离线使用。Free online metronome with tap tempo, time signatures, 9 rhythm patterns, accents and timer." />
+  <meta name="keywords" content="在线节拍器,节拍器,BPM,点击测速, metronome, online metronome, free metronome, tap tempo, drum machine, practice tool" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#4f6ef7" />
+  <link rel="canonical" href="https://tm.ntrbiss.top/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Tiny Metronome" />
+  <meta property="og:title" content="Tiny Metronome · 免费开源在线节拍器" />
+  <meta property="og:description" content="免费开源的在线节拍器：BPM 20-300、拍号、9 种节奏型、逐拍重音、点击测速、定时停止。Free online metronome." />
+  <meta property="og:url" content="https://tm.ntrbiss.top/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Tiny Metronome · 免费开源在线节拍器" />
+  <meta name="twitter:description" content="免费开源的在线节拍器：BPM 20-300、拍号、9 种节奏型、点击测速、定时停止。Free online metronome." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Tiny Metronome",
+    "url": "https://tm.ntrbiss.top/",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "description": "免费开源的在线节拍器：BPM 20-300、拍号、9 种节奏型、逐拍重音、点击测速、定时停止。Free online metronome with tap tempo, time signatures, rhythm patterns, accents and timer.",
+    "inLanguage": ["zh-CN", "en"],
+    "license": "https://opensource.org/licenses/MIT",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" }
+  }
+  </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M24 6h16l12 52H12z' fill='%234f6ef7'/%3E%3Crect x='30' y='14' width='4' height='30' rx='2' fill='%23fff'/%3E%3Ccircle cx='32' cy='42' r='5' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -96,8 +123,19 @@
     </section>
 
     <footer class="foot">
-      <p class="hint" data-i18n="hint"></p>
-      <p class="credit">Tiny Metronome · <a href="https://github.com/AriesYB/tiny-metronome" target="_blank" rel="noopener">GitHub</a> · MIT</p>
+      <div class="foot-links">
+        <button id="qrToggle" class="icon-link" aria-label="WeChat mini-app" data-i18n-aria="qrTitle">
+          <!-- WeChat mini-program mark: two open loops forming an "S" -->
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M 13.71 11.86 A 4.2 4.2 0 1 0 10.74 8.89"/>
+            <path d="M 13.26 15.11 A 4.2 4.2 0 1 1 10.29 12.14"/>
+          </svg>
+        </button>
+        <a class="icon-link" href="https://github.com/AriesYB/tiny-metronome" target="_blank" rel="noopener" aria-label="GitHub">
+          <svg class="filled" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </div>
+      <p class="credit">Tiny Metronome · MIT</p>
     </footer>
   </main>
 
@@ -109,6 +147,20 @@
         <button id="helpClose" class="help-close" aria-label="Close" data-i18n-aria="closeAria">✕</button>
       </div>
       <div class="help-body" id="helpBody"></div>
+    </div>
+  </div>
+
+  <!-- mini-app QR -->
+  <div class="help-overlay" id="qrOverlay" hidden>
+    <div class="help-card qr-card" role="dialog" aria-modal="true" aria-labelledby="qrTitle">
+      <div class="help-head">
+        <h2 id="qrTitle" data-i18n="qrTitle">微信小程序</h2>
+        <button id="qrClose" class="help-close" aria-label="Close" data-i18n-aria="closeAria">✕</button>
+      </div>
+      <div class="qr-body">
+        <img class="qr-img" src="img/miniapp-qr.jpg" alt="Tiny Metronome 微信小程序码 / WeChat mini-app QR code" width="258" height="258" />
+        <p class="qr-tip" data-i18n="qrTip">微信扫码，在手机上使用节拍器</p>
+      </div>
     </div>
   </div>
 

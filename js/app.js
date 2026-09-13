@@ -17,7 +17,8 @@
       sound: '音色',
       timer: '定时停止',
       remaining: '剩余时间',
-      hint: '空格 播放/停止 · ↑ ↓ 调节速度（Shift ±5）· T 测速 · 点击圆点循环 重音/静音',
+      qrTitle: '微信小程序',
+      qrTip: '微信扫码，在手机上使用节拍器',
       playAria: '播放 / 停止',
       decAria: '速度 -1',
       incAria: '速度 +1',
@@ -76,7 +77,8 @@
       sound: 'Sound',
       timer: 'Timer',
       remaining: 'Remaining',
-      hint: 'Space play/stop · ↑ ↓ tempo (Shift ±5) · T tap · click a dot to cycle accent/mute',
+      qrTitle: 'WeChat mini-app',
+      qrTip: 'Scan with WeChat to use the metronome on your phone',
       playAria: 'Play / stop',
       decAria: 'tempo -1',
       incAria: 'tempo +1',
@@ -324,6 +326,9 @@
     helpOverlay: $('#helpOverlay'),
     helpClose: $('#helpClose'),
     helpBody: $('#helpBody'),
+    qrToggle: $('#qrToggle'),
+    qrOverlay: $('#qrOverlay'),
+    qrClose: $('#qrClose'),
     dots: $('#dots'),
     bpmInput: $('#bpmInput'),
     bpmSlider: $('#bpmSlider'),
@@ -375,6 +380,12 @@
     el.helpOverlay.hidden = !open;
     if (open) el.helpClose.focus();
     else el.helpToggle.focus();
+  }
+
+  function setQr(open) {
+    el.qrOverlay.hidden = !open;
+    if (open) el.qrClose.focus();
+    else el.qrToggle.focus();
   }
 
   /* ---------- chips ---------- */
@@ -676,6 +687,14 @@
       return;
     }
 
+    if (!el.qrOverlay.hidden) {
+      if (e.key === 'Escape' || e.code === 'Space') {
+        e.preventDefault();
+        setQr(false);
+      }
+      return;
+    }
+
     if (e.code === 'Space') {
       e.preventDefault();
       togglePlay();
@@ -751,6 +770,13 @@
     el.helpClose.addEventListener('click', () => setHelp(false));
     el.helpOverlay.addEventListener('click', (e) => {
       if (e.target === el.helpOverlay) setHelp(false);
+    });
+
+    // mini-app QR
+    el.qrToggle.addEventListener('click', () => setQr(true));
+    el.qrClose.addEventListener('click', () => setQr(false));
+    el.qrOverlay.addEventListener('click', (e) => {
+      if (e.target === el.qrOverlay) setQr(false);
     });
 
     // keyboard + misc
