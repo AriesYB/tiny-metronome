@@ -1,6 +1,6 @@
 # Tiny Metronome · 轻量开源在线节拍器
 
-**在线使用 / Live: <https://tm.ntrbiss.top>**
+**在线使用 / Live: <https://tm.ikanp.top>**
 
 微信小程序版：页面底部「小程序」入口可查看小程序码，微信扫码即可在手机上使用。
 

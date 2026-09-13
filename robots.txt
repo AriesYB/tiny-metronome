@@ -3,4 +3,4 @@ Allow: /
 Disallow: /node_modules/
 Disallow: /.wrangler/
 
-Sitemap: https://tm.ntrbiss.top/sitemap.xml
+Sitemap: https://tm.ikanp.top/sitemap.xml
